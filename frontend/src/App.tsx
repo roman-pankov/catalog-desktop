@@ -48,6 +48,14 @@ function App() {
     useEffect(() => {
         // Первый вызов сразу при загрузке
         handleRequest();
+
+        // Интервал 5 минут (300000 мс)
+        const intervalId = setInterval(() => {
+            handleRequest();
+        }, 5*60*1000);
+
+        // Очистка интервала при размонтировании
+        return () => clearInterval(intervalId);
     }, []);
 
     return (
