@@ -60,7 +60,7 @@ function App() {
 
     return (
         <Container maxWidth="md" style={{ textAlign: 'center', paddingTop: '2rem' }}>
-            <Button variant="contained" color="success">
+            <Button variant="contained" color="success" onClick={handleRequest}>
                 Получить данные
             </Button>
 
