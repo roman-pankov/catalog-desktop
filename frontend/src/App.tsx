@@ -1,8 +1,49 @@
 import './App.css';
 import { useState, useEffect } from 'react';
-import axios from 'axios';
 import { Button, Container, Box, CircularProgress, Typography } from '@mui/material';
 import {DataTable, Item} from './DataTable';
+
+interface ProxyRequest {
+    url: string;
+    method: string;
+    headers: Record<string, string>;
+    body: any;
+}
+
+interface ProxyResponse {
+    data: string;
+    statusCode: number;
+    error?: string;
+}
+
+async function proxyRequest(url: string, data: any, headers: Record<string, string>) {
+    const proxyReq: ProxyRequest = {
+        url: url,
+        method: 'POST',
+        headers: headers,
+        body: data
+    };
+
+    try {
+        const response: ProxyResponse = await (window as any).go.main.App.ProxyHTTPRequest(proxyReq);
+
+        if (response.error) {
+            throw new Error(response.error);
+        }
+
+        // Парсим JSON ответ
+        const jsonData = JSON.parse(response.data);
+
+        // Возвращаем объект в формате axios response
+        return {
+            data: jsonData,
+            status: response.statusCode,
+            statusText: response.statusCode === 200 ? 'OK' : 'Error'
+        };
+    } catch (error: any) {
+        throw new Error(`Proxy request failed: ${error.message}`);
+    }
+}
 
 function App() {
     const [response, setResponse] = useState<Item[]>([]);
@@ -20,21 +61,18 @@ function App() {
         ];
         const url = 'https://my-pos-system.ru/service/?x_version=25.2141-108.3';
 
-
         try {
             const responses = await Promise.all(
                 rawJsons.map((json) =>
-                    axios.post(url, json, {
-                        headers: {
-                            'Content-Type': 'application/json; charset=UTF-8',
-                            'Cookie' : 'lang=ru; region=RU;', // ... много кук, в т.ч. для аутентификации
-                        },
+                    proxyRequest(url, json, {
+                        'Content-Type': 'application/json; charset=UTF-8',
+                        'Cookie': 'lang=ru; region=RU;', // ... много кук, в т.ч. для аутентификации
                     })
                 )
             );
 
-            // Объединяем данные result.d из каждого ответа
-            const allData: Item[] = responses.flatMap(res => res.data);
+            // Объединяем данные из каждого ответа
+            const allData: Item[] = responses.flatMap(res => res.data.data);
 
             // Оборачиваем в один объект, чтобы DataTable работала, как раньше
             setResponse(allData);
